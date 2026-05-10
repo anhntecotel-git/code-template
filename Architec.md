@@ -559,10 +559,22 @@ apps/frontend/
 │   │   │   ├── Sidebar.tsx
 │   │   │   ├── Footer.tsx
 │   │   │   └── PageContainer.tsx
-│   │   ├── table/                       # Table Components
-│   │   │   ├── DataTable.tsx            # Generic table component
-│   │   │   ├── TablePagination.tsx
-│   │   │   └── TableHeader.tsx
+│   │   ├── table/                       # Table Components (Organized by type)
+│   │   │   ├── core/                    # Core table utilities
+│   │   │   │   ├── TableToolbar.tsx     # Toolbar for table actions
+│   │   │   │   ├── TablePagination.tsx  # Pagination component
+│   │   │   │   ├── TableLoading.tsx     # Loading state
+│   │   │   │   ├── TableEmpty.tsx       # Empty state
+│   │   │   │   └── TableFilter.tsx      # Filter component
+│   │   │   ├── datatable/               # Data table implementation
+│   │   │   │   └── AppDataTable.tsx     # Generic data table component
+│   │   │   ├── excel/                   # Excel-like grid
+│   │   │   │   ├── ExcelGrid.tsx        # AG Grid implementation
+│   │   │   │   └── ExcelToolbar.tsx     # Excel-specific toolbar
+│   │   │   ├── tree/                    # Tree table
+│   │   │   │   └── TreeTable.tsx        # Hierarchical tree table
+│   │   │   └── pivot/                   # Pivot table
+│   │   │       └── PivotTable.tsx       # Pivot table implementation
 │   │   └── ui/                          # Basic UI Components
 │   │       ├── Button.tsx               # Custom button
 │   │       ├── Card.tsx
