@@ -1,0 +1,149 @@
+# Docker Compose snippet for Nginx service
+# Add this to your docker-compose.yml
+
+version: '3.8'
+
+services:
+  # Nginx - Reverse Proxy, Web Server, Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: ecotel-nginx
+    restart: always
+    
+    # Ports
+    ports:
+      - "80:80"
+      - "443:443"  # Uncomment when SSL is configured
+    
+    # Volumes
+    volumes:
+      # Configuration files
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/conf.d:/etc/nginx/conf.d:ro
+      
+      # Frontend static files
+      - ./apps/frontend/dist:/usr/share/nginx/html:ro
+      
+      # SSL certificates (uncomment when available)
+      # - ./infra/nginx/ssl:/etc/nginx/ssl:ro
+      
+      # Logs
+      - ./logs/nginx:/var/log/nginx
+      
+      # Cache
+      - nginx_cache:/var/cache/nginx
+    
+    # Environment
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+    
+    # Healthcheck
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Dependencies
+    depends_on:
+      backend:
+        condition: service_healthy
+    
+    # Networks
+    networks:
+      - ecotel-network
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=nginx"
+
+  # Backend service (referenced by Nginx)
+  backend:
+    image: ecotel/backend:latest
+    container_name: ecotel-backend
+    restart: always
+    
+    ports:
+      - "8080"  # Only exposed internally via Nginx
+    
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/ecotel_db
+      - SPRING_REDIS_HOST=redis
+      - SPRING_PROFILES_ACTIVE=prod
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - ecotel-network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecotel-postgres
+    restart: always
+    
+    environment:
+      POSTGRES_DB: ecotel_db
+      POSTGRES_USER: ecotel_user
+      POSTGRES_PASSWORD: postgres_password
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    
+    networks:
+      - ecotel-network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecotel_user -d ecotel_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    container_name: ecotel-redis
+    restart: always
+    
+    command: redis-server --appendonly yes
+    
+    volumes:
+      - redis_data:/data
+    
+    networks:
+      - ecotel-network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# Volumes
+volumes:
+  postgres_data:
+  redis_data:
+  nginx_cache:
+
+# Networks
+networks:
+  ecotel-network:
+    driver: bridge

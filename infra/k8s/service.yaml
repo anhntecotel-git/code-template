@@ -1,0 +1,148 @@
+---
+# Backend ClusterIP Service (internal communication)
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: ecotel
+  labels:
+    app: backend
+    tier: backend
+  annotations:
+    description: "Backend API Service"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: jmx
+    port: 9010
+    targetPort: jmx
+    protocol: TCP
+  selector:
+    app: backend
+    tier: backend
+  sessionAffinity: None
+  sessionAffinityConfig:
+    timeoutSeconds: 10800
+
+---
+# Frontend ClusterIP Service (internal communication)
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: ecotel
+  labels:
+    app: frontend
+    tier: frontend
+  annotations:
+    description: "Frontend Web Service"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: https
+    protocol: TCP
+  selector:
+    app: frontend
+    tier: frontend
+  sessionAffinity: None
+
+---
+# Backend Headless Service (for StatefulSet if needed)
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-headless
+  namespace: ecotel
+  labels:
+    app: backend
+    tier: backend
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: backend
+    tier: backend
+
+---
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: ecotel
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - name: postgresql
+    port: 5432
+    targetPort: 5432
+    protocol: TCP
+  selector:
+    app: postgres
+  clusterIP: None
+
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: ecotel
+  labels:
+    app: redis
+spec:
+  type: ClusterIP
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+    protocol: TCP
+  selector:
+    app: redis
+  clusterIP: None
+
+---
+# Ingress Controller Service (if using NodePort)
+apiVersion: v1
+kind: Service
+metadata:
+  name: ecotel-ingress-lb
+  namespace: ecotel
+  labels:
+    app: ingress
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"ports": {"80":"backend-config"}}'
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: 443
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/component: controller
+  externalTrafficPolicy: Local
+  sessionAffinity: None
